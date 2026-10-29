@@ -18,5 +18,5 @@ Including another URLconf
 from django.urls import include, path
 
 urlpatterns = [
-    path("api/books/", include("books.urls")),
+    path("api/books/", include("apps.books.urls")),
 ]

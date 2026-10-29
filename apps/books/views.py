@@ -3,14 +3,16 @@ from rest_framework import status
 from rest_framework.decorators import APIView
 from rest_framework.response import Response
 
+from apps.books.filter import filter_books
+
 from .models import BookModel
 from .serializers import BookSerializer
 
 
 class BookListCreateView(APIView):
     def get(self, request):
-        books = BookModel.objects.all()
-        serializer = BookSerializer(books, many=True)
+        qs = filter_books(request.query_params)
+        serializer = BookSerializer(qs, many=True)
         return Response(serializer.data)
 
     def post(self, request):

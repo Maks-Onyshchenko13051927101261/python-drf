@@ -1,8 +1,8 @@
-from django.urls import path  # noqa: F401
+from django.urls import path
 
-# from .views import ComputerDetailView, ComputerListCreateView
+from .views import BookDetailView, BookListCreateView
 
 urlpatterns = [
-    #    path("", ComputerListCreateView.as_view(), name="computer-list-create"),
-    #    path("<int:pk>/", ComputerDetailView.as_view(), name="computer-detail"),
+    path("", BookListCreateView.as_view(), name="book-list-create"),
+    path("<int:pk>/", BookDetailView.as_view(), name="book-detail"),
 ]

@@ -1,7 +1,7 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import status
-from rest_framework.decorators import APIView
-from rest_framework.response import Response
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
 
 from apps.books.filter import filter_books
 
@@ -9,41 +9,13 @@ from .models import BookModel
 from .serializers import BookSerializer
 
 
-class BookListCreateView(APIView):
-    def get(self, request):
-        qs = filter_books(request.query_params)
-        serializer = BookSerializer(qs, many=True)
-        return Response(serializer.data)
+class BookListCreateView(ListCreateAPIView):
+    serializer_class = BookSerializer
 
-    def post(self, request):
-        serializer = BookSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get_queryset(self):
+        return filter_books(self.request.query_params)
 
 
-class BookDetailView(APIView):
-    def get(self, pk):
-        return get_object_or_404(BookModel, pk=pk)
-
-    def put(self, request, pk):
-        book = self.get_object(pk)
-        serializer = BookSerializer(book, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, pk):
-        book = self.get_object(pk)
-        serializer = BookSerializer(book, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk):
-        book = self.get_object(pk)
-        book.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+class BookDetailView(RetrieveUpdateDestroyAPIView):
+    serializer_class = BookSerializer
+    queryset = BookModel.objects.all()

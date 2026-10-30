@@ -1,11 +1,15 @@
 from rest_framework import serializers
 
-from .models import Book
+from .models import BookModel
 
 
+# Серіалізатор для перетворення та перевірки даних книги
 class BookSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Book
+        # Вказуємо модель, з якою працює серіалізатор
+        model = BookModel
+
+        # Перелічуємо поля, які використовуватиме API
         fields = (
             "id",
             "title",

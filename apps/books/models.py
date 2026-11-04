@@ -1,10 +1,10 @@
 from django.db import models
 
-from core.models import CoreConfig
+from core.models import TimeStampedModel
 
 
-# Модель книги, яка успадковує спільні поля та налаштування від CoreConfig
-class BookModel(CoreConfig):
+# Модель книги, яка успадковує спільні поля та налаштування від TimeStampedModel
+class BookModel(TimeStampedModel):
     # Назва книги
     title = models.CharField(max_length=200)
 
@@ -22,6 +22,8 @@ class BookModel(CoreConfig):
 
     # Мова книги
     language = models.CharField(max_length=30)
+
+    # created_at та updated_at успадковуються від абстрактної базової моделі
 
     # Повертає назву книги як її текстове представлення
     def __str__(self):

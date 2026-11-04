@@ -2,7 +2,7 @@ from django.db import models
 
 
 # Базова модель зі спільними полями для інших моделей
-class CoreConfig(models.Model):
+class TimeStampedModel(models.Model):
     # Вказуємо, що модель абстрактна і не створює власної таблиці в БД
     class Meta:
         abstract = True

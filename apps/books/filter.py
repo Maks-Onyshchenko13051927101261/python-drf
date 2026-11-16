@@ -1,48 +1,46 @@
+from datetime import date
+
 from django.db.models import QuerySet
 from django.http import QueryDict
+from rest_framework.exceptions import ValidationError
 
 from apps.books.models import BookModel
 
 
 def filter_books(query: QueryDict) -> QuerySet:
     """
-    Фільтрує книги за параметрами запиту.
-    Повертає QuerySet із книгами, що відповідають умовам.
+    Формує QuerySet за параметрами URL.
+    Некоректні параметри повертають клієнту HTTP 400.
     """
-
-    # Отримуємо QuerySet усіх книг
     qs = BookModel.objects.all()
 
-    # Перебираємо параметри, передані в URL
     for k, v in query.items():
         match k:
             case "title":
-                # Шукаємо книги за частиною назви без урахування регістру
                 qs = qs.filter(title__icontains=v)
 
             case "author":
-                # Шукаємо книги за частиною імені автора
                 qs = qs.filter(author__icontains=v)
 
             case "published_date":
-                # Фільтруємо книги за точною датою публікації
+                try:
+                    date.fromisoformat(v)
+                except ValueError:
+                    raise ValidationError({k: "Очікується дата y форматі YYYY-MM-DD."})
                 qs = qs.filter(published_date=v)
 
             case "isbn":
-                # Шукаємо книги за ISBN
                 qs = qs.filter(isbn__icontains=v)
 
             case "language":
-                # Шукаємо книги за мовою
                 qs = qs.filter(language__icontains=v)
 
             case "pages":
-                # Фільтруємо книги за кількістю сторінок
-                qs = qs.filter(pages=v)
+                if not v.isdecimal():
+                    raise ValidationError({k: "Очікується невід'ємне ціле число."})
+                qs = qs.filter(pages=int(v))
 
             case _:
-                # Повідомляємо про невідомий параметр фільтрації
-                raise ValueError(f"Invalid filter key: {k}")
+                raise ValidationError({k: f"Невідомий параметр фільтрації: {k}."})
 
-    # Повертаємо відфільтрований QuerySet
     return qs

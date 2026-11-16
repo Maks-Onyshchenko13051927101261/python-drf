@@ -1,3 +1,4 @@
+# from django.db.models import Avg, Count, Q
 # from django.shortcuts import get_object_or_404
 # from rest_framework import status
 # from rest_framework.response import Response
@@ -11,6 +12,38 @@
 # # На відміну від готових generic-класів, тут ми самостійно
 # # отримуємо дані з ORM, викликаємо серіалізатор і формуємо відповідь.
 # class BookListCreateView(APIView):
+#     # # GET /api/books/
+#     # # Q дозволяє об'єднувати умови через OR (|).
+#     # # exclude() прибирає записи, які відповідають умові.
+#     # # order_by() задає порядок результатів.
+#     # def get(self, request):
+#     #     books = (
+#     #         BookModel.objects.filter(
+#     #             Q(title__icontains="python") | Q(author__icontains="python")
+#     #         )
+#     #         .exclude(language="unknown")
+#     #         .order_by("title")
+#     #     )
+
+#     #     serializer = BookSerializer(books, many=True)
+#     #     return Response(serializer.data)
+
+#     # # Перші п'ять книг за назвою (зріз QuerySet).
+#     # first_five = BookModel.objects.order_by("title")[:5]
+
+#     # # Отримуємо лише потрібні поля у вигляді словників.
+#     # book_data = BookModel.objects.values("title", "author")
+
+#     # # aggregate() обчислює підсумкове значення для всієї вибірки.
+#     # stats = BookModel.objects.aggregate(average_pages=Avg("pages"))
+
+#     # # annotate() додає обчислене поле до кожної групи.
+#     # authors = (
+#     #     BookModel.objects.values("author")
+#     #     .annotate(book_count=Count("id"))
+#     #     .order_by("-book_count")
+#     # )
+
 #     # GET /api/books/
 #     # Отримує всі записи з таблиці книг.
 #     # many=True потрібен для серіалізації QuerySet, а не одного об'єкта.
@@ -81,32 +114,148 @@
 #         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-# from rest_framework.generics import (
-#     ListCreateAPIView,
-#     RetrieveUpdateDestroyAPIView,
+# from rest_framework.generics import GenericAPIView
+# from rest_framework.mixins import (
+#     CreateModelMixin,
+#     DestroyModelMixin,
+#     ListModelMixin,
+#     RetrieveModelMixin,
+#     UpdateModelMixin,
 # )
 
+# # from rest_framework.response import Response
 # from apps.books.filter import filter_books
+# from apps.books.models import BookModel
+# from apps.books.serializers import BookSerializer
 
-# from .models import BookModel
-# from .serializers import BookSerializer
 
-
-# # Готовий клас DRF для отримання списку книг і створення нових
-# class BookListCreateView(ListCreateAPIView):
-#     # Вказуємо серіалізатор для роботи з даними книги
+# # GenericAPIView надає базові механізми роботи з queryset,
+# # серіалізатором і пошуком об'єктів.
+# # Mixins додають готові CRUD-операції, але HTTP-методи
+# # ми ще пов'язуємо з ними вручну.
+# class BookListCreateView(GenericAPIView, ListModelMixin, CreateModelMixin):
+#     # queryset = BookModel.objects.all()
+#     # DRF використовує цей клас для перетворення моделей у JSON,
+#     # перевірки вхідних даних і створення нових записів.
 #     serializer_class = BookSerializer
 
-#     # Визначаємо, які книги потрібно отримати з бази даних
+#     # На відміну від статичного атрибута queryset,
+#     # get_queryset() виконується під час обробки запиту.
+#     # Це дозволяє будувати вибірку залежно від query_params.
 #     def get_queryset(self):
-#         # Передаємо параметри запиту у функцію фільтрації
+#         # Використовуємо функцію filter_books для фільтрації книг за параметрами запиту
 #         return filter_books(self.request.query_params)
 
+#     # GET /api/books/
+#     # ListModelMixin отримує queryset через get_queryset(),
+#     # серіалізує всі знайдені книги з many=True і повертає 200 OK.
+#     def get(self, request):
+#         return super().list(request)
 
-# # Готовий клас DRF для отримання, оновлення та видалення книги
-# class BookDetailView(RetrieveUpdateDestroyAPIView):
-#     # Вказуємо серіалізатор для роботи з даними книги
+#     # POST /api/books/
+#     # CreateModelMixin перевіряє request.data через серіалізатор,
+#     # зберігає валідний об'єкт і повертає 201 Created.
+#     # Якщо дані некоректні, DRF повертає 400 Bad Request.
+#     def post(self, request):
+#         return super().create(request)
+
+#     # def get(self, request):
+#     #     qs = BookModel.objects.all()
+#     #     serializer = BookSerializer(qs, many=True)
+#     #     return Response(serializer.data)
+
+#     # def post(self, request):
+#     #     serializer = BookSerializer(data=request.data)
+#     #     serializer.is_valid(raise_exception=True)
+#     #     serializer.save()
+#     #     return Response(serializer.data, status=201)
+
+
+# # GenericAPIView забезпечує пошук об'єкта за pk із URL.
+# # Mixins реалізують читання, оновлення та видалення.
+# class BookDetailView(
+#     GenericAPIView, RetrieveModelMixin, UpdateModelMixin, DestroyModelMixin
+# ):
+#     # Базова вибірка, у якій DRF шукатиме книгу.
+#     queryset = BookModel.objects.all()
+#     # Серіалізатор використовується для читання й перевірки даних.
 #     serializer_class = BookSerializer
 
-#     # Вказуємо набір книг, серед яких DRF шукатиме потрібну за ID
-#     queryset = BookModel.objects.all()
+#     # GET /api/books/<pk>/
+#     # RetrieveModelMixin викликає get_object(), який шукає книгу
+#     # за pk у queryset. Якщо її немає — 404, інакше — 200 OK.
+#     def get(self, request, pk):
+#         return super().retrieve(request, pk=pk)
+
+#     # PUT /api/books/<pk>/
+#     # UpdateModelMixin перевіряє повний набір обов'язкових полів
+#     # і оновлює знайдений запис. Успіх — 200, помилка даних — 400.
+#     def put(self, request, pk):
+#         return super().update(request, pk=pk)
+
+#     # PATCH /api/books/<pk>/
+#     # partial_update() передає partial=True у серіалізатор,
+#     # тому можна оновити лише частину полів. Успіх — 200.
+#     def patch(self, request, pk):
+#         return super().partial_update(request, pk=pk)
+
+#     # DELETE /api/books/<pk>/
+#     # DestroyModelMixin знаходить і видаляє книгу.
+#     # Успішна відповідь — 204 No Content без тіла.
+#     def delete(self, request, pk):
+#         return super().destroy(request, pk=pk)
+
+# def get(self, request, pk):
+#     book = self.get_object()
+#     serializer = BookSerializer(book)
+#     return Response(serializer.data)
+
+# def put(self, request, pk):
+#     book = self.get_object()
+#     serializer = BookSerializer(book, data=request.data)
+#     serializer.is_valid(raise_exception=True)
+#     serializer.save()
+#     return Response(serializer.data)
+
+# def patch(self, request, pk):
+#     book = self.get_object()
+#     serializer = BookSerializer(book, data=request.data, partial=True)
+#     serializer.is_valid(raise_exception=True)
+#     serializer.save()
+#     return Response(serializer.data)
+
+# def delete(self, request, pk):
+#     book = self.get_object()
+#     book.delete()
+#     return Response(status=204)
+
+
+from rest_framework.generics import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+)
+
+from apps.books.filter import filter_books
+
+from .models import BookModel
+from .serializers import BookSerializer
+
+
+# Готовий клас DRF для отримання списку книг і створення нових
+class BookListCreateView(ListCreateAPIView):
+    # Вказуємо серіалізатор для роботи з даними книги
+    serializer_class = BookSerializer
+
+    # Визначаємо, які книги потрібно отримати з бази даних
+    def get_queryset(self):
+        # Передаємо параметри запиту у функцію фільтрації
+        return filter_books(self.request.query_params)
+
+
+# Готовий клас DRF для отримання, оновлення та видалення книги
+class BookDetailView(RetrieveUpdateDestroyAPIView):
+    # Вказуємо серіалізатор для роботи з даними книги
+    serializer_class = BookSerializer
+
+    # Вказуємо набір книг, серед яких DRF шукатиме потрібну за ID
+    queryset = BookModel.objects.all()

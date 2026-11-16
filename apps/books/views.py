@@ -241,21 +241,37 @@ from .models import BookModel
 from .serializers import BookSerializer
 
 
-# Готовий клас DRF для отримання списку книг і створення нових
+# ListCreateAPIView об'єднує GenericAPIView із ListModelMixin
+# та CreateModelMixin і автоматично обробляє:
+# GET /api/books/ — повертає список книг зі статусом 200 OK.
+# POST /api/books/ — перевіряє дані серіалізатором і створює
+# запис зі статусом 201 Created або повертає 400 Bad Request.
 class BookListCreateView(ListCreateAPIView):
-    # Вказуємо серіалізатор для роботи з даними книги
+    # ModelSerializer перетворює об'єкти моделі на дані відповіді
+    # та перевіряє вхідні дані перед створенням запису.
     serializer_class = BookSerializer
 
-    # Визначаємо, які книги потрібно отримати з бази даних
+    # get_queryset() викликається під час обробки запиту,
+    # тому дозволяє врахувати параметри фільтрації з URL.
+    # На відміну від атрибута queryset, вибірка тут формується
+    # динамічно для поточного запиту.
     def get_queryset(self):
-        # Передаємо параметри запиту у функцію фільтрації
         return filter_books(self.request.query_params)
 
 
-# Готовий клас DRF для отримання, оновлення та видалення книги
+# RetrieveUpdateDestroyAPIView об'єднує GenericAPIView
+# із RetrieveModelMixin, UpdateModelMixin та DestroyModelMixin.
+# Автоматично обробляє:
+# GET — отримання книги (200 OK).
+# PUT — повне оновлення (200 OK).
+# PATCH — часткове оновлення (200 OK).
+# DELETE — видалення (204 No Content).
+# get_object() шукає книгу за pk з URL у queryset.
+# Якщо запис відсутній, DRF повертає 404 Not Found.
+# Некоректні дані для PUT/PATCH повертають 400 Bad Request.
 class BookDetailView(RetrieveUpdateDestroyAPIView):
-    # Вказуємо серіалізатор для роботи з даними книги
+    # Серіалізатор відповідає за читання, перевірку й оновлення даних.
     serializer_class = BookSerializer
 
-    # Вказуємо набір книг, серед яких DRF шукатиме потрібну за ID
+    # Базова вибірка, в якій get_object() шукає книгу за pk.
     queryset = BookModel.objects.all()
